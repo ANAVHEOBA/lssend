@@ -3,10 +3,6 @@ import { AppError } from '../../middleware/error.middleware';
 import bcrypt from 'bcryptjs';
 
 export const createUser = async (userData: Partial<IUser>): Promise<IUser> => {
-  if (userData.password) {
-    userData.password = await bcrypt.hash(userData.password, 12);
-  }
-  
   const user = await User.create(userData);
   return user;
 };
@@ -31,10 +27,6 @@ export const updateUser = async (
   id: string,
   updateData: Partial<IUser>
 ): Promise<IUser> => {
-  if (updateData.password) {
-    updateData.password = await bcrypt.hash(updateData.password, 12);
-  }
-
   const user = await User.findByIdAndUpdate(id, updateData, {
     new: true,
     runValidators: true,
@@ -58,5 +50,10 @@ export const comparePassword = async (
   candidatePassword: string,
   userPassword: string
 ): Promise<boolean> => {
-  return await bcrypt.compare(candidatePassword, userPassword);
+  console.log('Comparing passwords...');
+  console.log('Candidate password length:', candidatePassword.length);
+  console.log('Stored password length:', userPassword.length);
+  const result = await bcrypt.compare(candidatePassword, userPassword);
+  console.log('Password comparison result:', result);
+  return result;
 };

@@ -76,17 +76,25 @@ userSchema.pre('save', async function(next) {
   if (!this.isModified('password')) return next();
   
   try {
+    console.log('Hashing password before save...');
     const salt = await bcrypt.genSalt(10);
     this.password = await bcrypt.hash(this.password, salt);
+    console.log('Password hashed successfully');
     next();
   } catch (error: any) {
+    console.error('Error hashing password:', error);
     next(error);
   }
 });
 
 // Compare password method
 userSchema.methods.comparePassword = async function(candidatePassword: string): Promise<boolean> {
-  return bcrypt.compare(candidatePassword, this.password);
+  console.log('Comparing passwords in model...');
+  console.log('Candidate password length:', candidatePassword.length);
+  console.log('Stored password length:', this.password.length);
+  const result = await bcrypt.compare(candidatePassword, this.password);
+  console.log('Password comparison result:', result);
+  return result;
 };
 
 // Indexes

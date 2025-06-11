@@ -76,21 +76,29 @@ export const userController = {
   login: async (req: Request, res: Response, next: NextFunction) => {
     try {
       const { email, password } = req.body;
+      console.log('Login attempt for email:', email);
 
       // Check if user exists
       const user = await findUserByEmail(email);
+      console.log('User found:', user ? 'Yes' : 'No');
+      
       if (!user || !user.password) {
+        console.log('No user found or no password set');
         return next(new AppError('Invalid email or password', 401));
       }
 
       // Check if password is correct
       const isPasswordCorrect = await comparePassword(password, user.password);
+      console.log('Password correct:', isPasswordCorrect);
+      
       if (!isPasswordCorrect) {
+        console.log('Password incorrect');
         return next(new AppError('Invalid email or password', 401));
       }
 
       createSendToken(user, 200, res);
     } catch (error) {
+      console.error('Login error:', error);
       next(error);
     }
   },
