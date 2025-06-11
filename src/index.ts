@@ -2,46 +2,66 @@ import app from './app';
 import { config } from './config/app.config';
 import { connectDB } from './config/database.config';
 
-const startServer = async () => {
+const startServer = async (retryCount = 0) => {
   try {
-    // Connect to MongoDB
+    // Connect to MongoDB with retry
     await connectDB();
 
-    // Start server
     const server = app.listen(config.port, () => {
       console.log(`🚀 Server is running on port ${config.port}`);
       console.log(`🌍 Environment: ${config.nodeEnv}`);
       console.log(`📝 API Documentation: http://localhost:${config.port}/api-docs`);
     });
 
-    // Handle unhandled promise rejections
+    // Graceful shutdown with timeout
+    const gracefulShutdown = async (signal: string) => {
+      console.log(`👋 ${signal} received. Starting graceful shutdown...`);
+      
+      // Give existing connections 10 seconds to complete
+      server.close(() => {
+        console.log('💥 Server closed');
+        process.exit(0);
+      });
+
+      // Force close after 10 seconds
+      setTimeout(() => {
+        console.error('⚠️ Could not close connections in time, forcefully shutting down');
+        process.exit(1);
+      }, 10000);
+    };
+
+    // Handle various termination signals
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));
+
+    // Handle unhandled rejections with retry
     process.on('unhandledRejection', (err: Error) => {
       console.error('❌ UNHANDLED REJECTION!');
       console.error(err.name, err.message);
-      // Don't shut down the server, just log the error
-      console.error('Server will continue running...');
-    });
-
-    // Handle uncaught exceptions
-    process.on('uncaughtException', (err: Error) => {
-      console.error('❌ UNCAUGHT EXCEPTION!');
-      console.error(err.name, err.message);
-      // Give time for logging before shutting down
-      setTimeout(() => {
+      
+      if (retryCount < config.retry.maxAttempts) {
+        console.log(`🔄 Retrying server startup (${retryCount + 1}/${config.retry.maxAttempts})...`);
+        setTimeout(() => {
+          startServer(retryCount + 1);
+        }, config.retry.delay);
+      } else {
+        console.error('❌ Max retries reached. Shutting down...');
         process.exit(1);
-      }, 1000);
+      }
     });
 
-    // Handle SIGTERM
-    process.on('SIGTERM', () => {
-      console.log('👋 SIGTERM RECEIVED. Shutting down gracefully');
-      server.close(() => {
-        console.log('💥 Process terminated!');
-      });
-    });
   } catch (error) {
     console.error('❌ Error starting server:', error);
-    process.exit(1);
+    
+    if (retryCount < config.retry.maxAttempts) {
+      console.log(`🔄 Retrying server startup (${retryCount + 1}/${config.retry.maxAttempts})...`);
+      setTimeout(() => {
+        startServer(retryCount + 1);
+      }, config.retry.delay);
+    } else {
+      console.error('❌ Max retries reached. Shutting down...');
+      process.exit(1);
+    }
   }
 };
 

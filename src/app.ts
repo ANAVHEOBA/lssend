@@ -14,6 +14,19 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cors(config.cors));
 
+// Add timeout middleware
+app.use((req: Request, res: Response, next: NextFunction) => {
+  req.setTimeout(config.timeouts.request);
+  res.setTimeout(config.timeouts.request);
+  next();
+});
+
+// Add request logging
+app.use((req: Request, res: Response, next: NextFunction) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.url}`);
+  next();
+});
+
 // Root route
 app.get('/', (req: Request, res: Response) => {
   res.status(200).json({
@@ -40,6 +53,22 @@ app.use('/api/admin', adminRoutes);
 
 // Error handling middleware
 app.use((err: Error, req: Request, res: Response, next: NextFunction) => {
+  console.error('Error:', err);
+  
+  if (err.name === 'ValidationError') {
+    return res.status(400).json({
+      status: 'error',
+      message: err.message
+    });
+  }
+  
+  if (err.name === 'UnauthorizedError') {
+    return res.status(401).json({
+      status: 'error',
+      message: 'Unauthorized access'
+    });
+  }
+  
   errorHandler(err, req, res, next);
 });
 
