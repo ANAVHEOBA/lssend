@@ -24,7 +24,7 @@ export const config = {
   // CORS Configuration
   cors: {
     origin: process.env.NODE_ENV === 'production' 
-      ? ['https://your-production-domain.com'] 
+      ? ['https://lssendangular.vercel.app'] 
       : ['http://localhost:3000', 'http://localhost:4200'],
     credentials: true,
   },
