@@ -16,18 +16,20 @@ const startServer = async () => {
 
     // Handle unhandled promise rejections
     process.on('unhandledRejection', (err: Error) => {
-      console.error('❌ UNHANDLED REJECTION! Shutting down...');
+      console.error('❌ UNHANDLED REJECTION!');
       console.error(err.name, err.message);
-      server.close(() => {
-        process.exit(1);
-      });
+      // Don't shut down the server, just log the error
+      console.error('Server will continue running...');
     });
 
     // Handle uncaught exceptions
     process.on('uncaughtException', (err: Error) => {
-      console.error('❌ UNCAUGHT EXCEPTION! Shutting down...');
+      console.error('❌ UNCAUGHT EXCEPTION!');
       console.error(err.name, err.message);
-      process.exit(1);
+      // Give time for logging before shutting down
+      setTimeout(() => {
+        process.exit(1);
+      }, 1000);
     });
 
     // Handle SIGTERM

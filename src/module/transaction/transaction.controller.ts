@@ -14,7 +14,7 @@ export const transactionController = {
 
       // Get current LSK price
       const priceResponse = await cryptoController.getCurrentPrice(req, res, next);
-      if (!priceResponse?.data?.prices) {
+      if (!priceResponse || !priceResponse.data?.prices) {
         throw new AppError('Failed to get current LSK price', 500);
       }
       const prices = priceResponse.data.prices;
@@ -49,8 +49,9 @@ export const transactionController = {
       // Create transaction
       const transaction = await transactionCrud.create({
         userId,
-        liskAmount: totals.lsk, // Store total amount including fees
-        nairaAmount: totals.ngn, // Store total amount including fees
+        type: TransactionType.BUY,
+        liskAmount: totals.lsk,
+        nairaAmount: totals.ngn,
         liskAddress,
         paymentMethod: PaymentMethod.BANK_TRANSFER,
         status: TransactionStatus.PENDING_PAYMENT,
@@ -60,7 +61,7 @@ export const transactionController = {
           bankName: process.env.BANK_NAME || 'Access Bank'
         },
         paymentReference: `LSK-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        paymentDeadline: new Date(Date.now() + 24 * 60 * 60 * 1000), // 24 hours from now
+        paymentDeadline: new Date(Date.now() + 24 * 60 * 60 * 1000),
         fees: {
           percentage: TRANSACTION_FEE_PERCENTAGE,
           lsk: fees.lsk,
@@ -138,7 +139,7 @@ export const transactionController = {
 
       // Get current LSK price
       const priceResponse = await cryptoController.getCurrentPrice(req, res, next);
-      if (!priceResponse?.data?.prices) {
+      if (!priceResponse || !priceResponse.data?.prices) {
         throw new AppError('Failed to get current LSK price', 500);
       }
       const prices = priceResponse.data.prices;

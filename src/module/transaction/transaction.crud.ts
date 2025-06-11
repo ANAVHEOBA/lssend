@@ -5,7 +5,17 @@ import mongoose from 'mongoose';
 export const transactionCrud = {
   async create(data: Partial<ITransaction>): Promise<ITransaction> {
     try {
-      const transaction = await Transaction.create(data);
+      // Initialize status history with the initial status
+      const transactionData = {
+        ...data,
+        statusHistory: [{
+          status: data.status || TransactionStatus.PENDING_PAYMENT,
+          timestamp: new Date(),
+          note: 'Transaction created'
+        }]
+      };
+
+      const transaction = await Transaction.create(transactionData);
       return transaction;
     } catch (error) {
       if (error instanceof mongoose.Error.ValidationError) {
@@ -42,13 +52,11 @@ export const transactionCrud = {
     }
 
     transaction.status = status;
-    if (note) {
-      transaction.statusHistory.push({
-        status,
-        timestamp: new Date(),
-        note
-      });
-    }
+    transaction.statusHistory.push({
+      status,
+      timestamp: new Date(),
+      note
+    });
 
     await transaction.save();
     return transaction;

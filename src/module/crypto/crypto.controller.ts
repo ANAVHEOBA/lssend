@@ -23,7 +23,7 @@ interface PriceResponse {
 }
 
 export const cryptoController = {
-  async getCurrentPrice(req: Request, res: Response, next: NextFunction): Promise<PriceResponse> {
+  async getCurrentPrice(req: Request, res: Response, next: NextFunction): Promise<PriceResponse | void> {
     try {
       // Get LSK price in USD, EUR, GBP
       const lskResponse = await axios.get(
@@ -78,17 +78,21 @@ export const cryptoController = {
         }
       };
 
-      // Only send response if this is a direct API call
-      if (req.originalUrl.includes('/api/crypto/price')) {
+      // If this is a direct API call, send the response
+      if (res && typeof res.json === 'function' && req.originalUrl.includes('/api/crypto/price')) {
         res.status(200).json(response);
+        return;
       }
 
+      // If called internally, return the response
       return response;
     } catch (error) {
-      if (req.originalUrl.includes('/api/crypto/price')) {
+      console.error('Error fetching crypto price:', error);
+      if (res && typeof res.json === 'function' && req.originalUrl.includes('/api/crypto/price')) {
         next(new AppError('Failed to fetch price data', 500));
+      } else {
+        throw new AppError('Failed to fetch price data', 500);
       }
-      throw error;
     }
   },
 
@@ -104,7 +108,38 @@ export const cryptoController = {
         data: { prices }
       });
     } catch (error) {
+      console.error('Error fetching historical prices:', error);
       next(new AppError('Failed to fetch historical prices', 500));
+    }
+  },
+
+  async getTopCryptos(req: Request, res: Response, next: NextFunction) {
+    try {
+      const limit = Number(req.query.limit) || 10;
+      const page = Number(req.query.page) || 1;
+
+      const response = await axios.get(
+        `${COINGECKO_API_URL}/coins/markets`,
+        {
+          params: {
+            vs_currency: 'usd',
+            order: 'market_cap_desc',
+            per_page: limit,
+            page: page,
+            sparkline: false
+          }
+        }
+      );
+
+      res.status(200).json({
+        status: 'success',
+        data: {
+          cryptos: response.data
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching top cryptos:', error);
+      next(new AppError('Failed to fetch top cryptocurrencies', 500));
     }
   }
 }; 

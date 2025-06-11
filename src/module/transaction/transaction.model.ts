@@ -20,6 +20,12 @@ export enum TransactionType {
   SELL = 'sell'
 }
 
+export interface IStatusHistory {
+  status: TransactionStatus;
+  timestamp: Date;
+  note?: string;
+}
+
 export interface IBankDetails {
   accountName: string;
   accountNumber: string;
@@ -36,6 +42,7 @@ export interface ITransaction extends Document {
   liskAddress: string;
   paymentMethod: PaymentMethod;
   status: TransactionStatus;
+  statusHistory: IStatusHistory[];
   bankDetails: IBankDetails;
   paymentReference: string;
   paymentDeadline: Date;
@@ -87,6 +94,18 @@ const transactionSchema = new Schema<ITransaction>(
       enum: Object.values(TransactionStatus),
       default: TransactionStatus.PENDING_PAYMENT
     },
+    statusHistory: [{
+      status: {
+        type: String,
+        enum: Object.values(TransactionStatus),
+        required: true
+      },
+      timestamp: {
+        type: Date,
+        default: Date.now
+      },
+      note: String
+    }],
     bankDetails: {
       accountName: {
         type: String,
